@@ -4,14 +4,11 @@ import { useState, useEffect } from 'react';
 import { createUserWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { auth } from '../../utils/firebase';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
+
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
@@ -23,22 +20,11 @@ export default function SignupPage() {
     e.preventDefault();
     
     if (!mounted || !auth) {
-      setError('Authentication service not available');
       return;
     }
 
-    setLoading(true);
-    setError('');
-
-    if (password !== confirmPassword) {
-      setError('Passwords do not match');
-      setLoading(false);
-      return;
-    }
 
     if (password.length < 6) {
-      setError('Password must be at least 6 characters');
-      setLoading(false);
       return;
     }
 
@@ -46,10 +32,7 @@ export default function SignupPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (error) {
-      const authError = error as AuthError;
-      setError(authError.message);
-    } finally {
-      setLoading(false);
+      console.log(error)
     }
   };
 

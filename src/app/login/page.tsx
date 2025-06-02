@@ -3,14 +3,11 @@
 import { useState, useEffect } from 'react';
 import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { auth } from '../../utils/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [loading, setLoading] = useState(false);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
@@ -22,21 +19,14 @@ export default function LoginPage() {
     e.preventDefault();
     
     if (!mounted || !auth) {
-      setError('Authentication service not available');
       return;
     }
-
-    setLoading(true);
-    setError('');
 
     try {
       await signInWithEmailAndPassword(auth, email, password);
       router.push('/');
     } catch (error) {
-      const authError = error as AuthError;
-      setError(authError.message);
-    } finally {
-      setLoading(false);
+      console.log(error)
     }
   };
 
