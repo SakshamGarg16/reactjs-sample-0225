@@ -89,7 +89,7 @@ export default function AddTaskModal({ onTaskAdded }: AddTaskModalProps) {
       {isOpen && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-white p-6 rounded-lg w-96 max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-bold mb-4">Add New Task</h2>
+            <h2 className="text-gray-700 text-xl font-bold mb-4">Add New Task</h2>
             
             <form onSubmit={handleSubmit}>
               <div className="mb-4">
@@ -126,7 +126,7 @@ export default function AddTaskModal({ onTaskAdded }: AddTaskModalProps) {
                 <select
                   value={status}
                   onChange={(e) => setStatus(e.target.value as 'pending' | 'in-progress' | 'completed')}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                  className="text-gray-700 w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
                 >
                   <option value="pending">Pending</option>
                   <option value="in-progress">In Progress</option>
@@ -142,7 +142,7 @@ export default function AddTaskModal({ onTaskAdded }: AddTaskModalProps) {
                   type="datetime-local"
                   value={deadline}
                   onChange={(e) => setDeadline(e.target.value)}
-                  className="w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
+                  className="text-gray-700 w-full px-3 py-2 border rounded-lg focus:outline-none focus:border-blue-500"
                   required
                 />
               </div>

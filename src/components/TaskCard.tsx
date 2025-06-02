@@ -164,8 +164,8 @@ export default function TaskCard({
     } ${isOverdue() ? 'bg-red-50' : ''}`}>
       
       {/* Header */}
-      <div className="flex justify-between items-start mb-3">
-        <h3 className={`text-lg font-semibold ${status === 'completed' ? 'line-through text-gray-500' : ''}`}>
+      <div className="flex justify-between items-start mb-3 text-gray-700">
+        <h3 className={`text-lg font-semibold ${status === 'completed' ? 'line-through text-gray-700' : ''}`}>
           {title || 'Untitled Task'}
         </h3>
         <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
