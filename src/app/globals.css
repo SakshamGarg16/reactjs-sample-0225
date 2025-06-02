@@ -24,3 +24,40 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+
+@tailwind utilities;
+@tailwind utilities;
+
+/* Ensure input text is always visible */
+input[type="email"],
+input[type="password"],
+input[type="text"],
+textarea {
+  color: #1f2937 !important; /* gray-800 */
+  background-color: white !important;
+}
+
+input[type="email"]:disabled,
+input[type="password"]:disabled,
+input[type="text"]:disabled,
+textarea:disabled {
+  color: #6b7280 !important; /* gray-500 */
+  background-color: #f9fafb !important; /* gray-50 */
+}
+
+/* Placeholder text styling */
+input::placeholder,
+textarea::placeholder {
+  color: #9ca3af !important; /* gray-400 */
+  opacity: 1;
+}
+
+/* Ensure autofill doesn't override text color */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #1f2937 !important;
+  -webkit-box-shadow: 0 0 0px 1000px white inset !important;
+  transition: background-color 5000s ease-in-out 0s !important;
+}
