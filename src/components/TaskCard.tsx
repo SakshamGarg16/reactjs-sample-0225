@@ -162,6 +162,7 @@ export default function TaskCard({ id, title, status, deadline, description }: T
       
       return date < new Date();
     } catch (error) {
+      console.error('Error checking deadline:', error);
       return false;
     }
   };
@@ -193,6 +194,7 @@ export default function TaskCard({ id, title, status, deadline, description }: T
       if (minutes > 0) return `${minutes}m remaining`;
       return 'Due now';
     } catch (error) {
+      console.error('Error calculating time remaining:', error);
       return null;
     }
   };

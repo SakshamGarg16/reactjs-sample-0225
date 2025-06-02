@@ -63,10 +63,6 @@ export default function HomePage() {
     return () => unsubscribe();
   }, [router]);
 
-  const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/login');
-  };
 
   const handleFilterChange = (filter: FilterStatus) => {
     setSelectedFilter(filter);
