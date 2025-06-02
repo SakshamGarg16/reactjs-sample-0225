@@ -16,9 +16,8 @@ export default function SignupPage() {
       await createUserWithEmailAndPassword(auth, email, password);
       toast.success('Signup successful!');
       router.push('/');
-    } catch (error: any) {
+    } catch (error) {
       console.error(error);
-      toast.error(error.message);
     }
   };
 

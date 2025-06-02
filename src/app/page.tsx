@@ -1,12 +1,12 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { collection, getDocs, query, where, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../utils/firebase';
 import TaskCard from '../components/TaskCard';
 import AddTaskModal from '../components/AddTaskModal';
 import { Toaster } from 'react-hot-toast';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import ProtectedRoute from '../components/ProctedRoute';
 
 
@@ -17,22 +17,23 @@ export interface Task {
   status: 'pending' | 'in-progress' | 'completed';
   deadline: string;
   userId: string;
-  createdAt: ReturnType<typeof serverTimestamp>;
-  updatedAt: ReturnType<typeof serverTimestamp>;
+  createdAt?: Timestamp | string | null;
+  updatedAt?: Timestamp | string | null;
 }
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
-  const [user, setUser] = useState<any>(null);
+  const [user, setUser] = useState<User | null>(null);
 
   const fetchTasks = useCallback(async (uid: string) => {
     try {
       setLoading(true);
-      // Query by userId and status (single field index)
+      // Temporarily remove orderBy to avoid index requirement
       const q = query(
         collection(db, 'tasks'), 
         where('userId', '==', uid)
+        // orderBy('createdAt', 'desc') // Comment this out temporarily
       );
       
       const snapshot = await getDocs(q);
@@ -50,22 +51,18 @@ export default function HomePage() {
         } as Task;
       });
       
-      // Sort by status priority and then by deadline
       const sortedTasks = fetchedTasks.sort((a, b) => {
-        const statusPriority = { 'pending': 0, 'in-progress': 1, 'completed': 2 };
-        const aPriority = statusPriority[a.status as keyof typeof statusPriority] ?? 3;
-        const bPriority = statusPriority[b.status as keyof typeof statusPriority] ?? 3;
+        if (!a.createdAt || !b.createdAt) return 0;
         
-        if (aPriority !== bPriority) {
-          return aPriority - bPriority;
-        }
+        // Handle Firebase Timestamps
+        const aTime = (a.createdAt as Timestamp).toDate ? 
+          (a.createdAt as Timestamp).toDate().getTime() : 
+          new Date(a.createdAt as unknown as string).getTime();
+        const bTime = (b.createdAt as Timestamp).toDate ? 
+          (b.createdAt as Timestamp).toDate().getTime() : 
+          new Date(b.createdAt as unknown as string).getTime();
         
-        // If same status, sort by deadline
-        if (a.deadline && b.deadline) {
-          return new Date(a.deadline).getTime() - new Date(b.deadline).getTime();
-        }
-        
-        return 0;
+        return bTime - aTime; // Descending order (newest first)
       });
       
       setTasks(sortedTasks);
@@ -78,7 +75,7 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
       if (user) {
         setUser(user);
         fetchTasks(user.uid);
