@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { doc, updateDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import toast from 'react-hot-toast';
 
@@ -11,7 +11,7 @@ interface TaskCardProps {
   description: string;
   status: 'pending' | 'in-progress' | 'completed';
   deadline: string;
-  createdAt?: any;
+  createdAt?: Timestamp | string | null;
   onTaskUpdated?: () => void;
 }
 
@@ -58,13 +58,13 @@ export default function TaskCard({
     }
   };
 
-  const formatDate = (dateString: string | any) => {
+  const formatDate = (dateInput: Timestamp | string | null | undefined) => {
     try {
-      if (!dateString) return 'No date';
+      if (!dateInput) return 'No date';
       
       // Handle Firebase Timestamp
-      if (dateString && typeof dateString === 'object' && dateString.toDate) {
-        const date = dateString.toDate();
+      if (dateInput && typeof dateInput === 'object' && 'toDate' in dateInput) {
+        const date = (dateInput as Timestamp).toDate();
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
           hour: '2-digit', 
           minute: '2-digit' 
@@ -72,8 +72,8 @@ export default function TaskCard({
       }
       
       // Handle string dates
-      if (typeof dateString === 'string') {
-        const date = new Date(dateString);
+      if (typeof dateInput === 'string') {
+        const date = new Date(dateInput);
         if (isNaN(date.getTime())) return 'Invalid date';
         return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
           hour: '2-digit', 

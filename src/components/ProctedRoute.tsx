@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../utils/firebase';
 import { useRouter } from 'next/navigation';
 
@@ -10,35 +10,47 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const [user, setUser] = useState(null);
+  const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
-      if (currentUser) {
-        setUser(currentUser as any);
+    console.log('ProtectedRoute: Setting up auth listener');
+    
+    const unsubscribe = onAuthStateChanged(auth, (user: User | null) => {
+      console.log('ProtectedRoute: Auth state changed', { user: !!user });
+      
+      if (user) {
+        setUser(user);
         setLoading(false);
       } else {
-        // Immediately redirect to login
+        console.log('ProtectedRoute: No user, redirecting to login');
         router.replace('/login');
       }
     });
-    return () => unsubscribe();
+
+    return () => {
+      console.log('ProtectedRoute: Cleaning up auth listener');
+      unsubscribe();
+    };
   }, [router]);
 
-  // Show loading while checking auth
+  console.log('ProtectedRoute: Render state', { loading, hasUser: !!user });
+
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Loading...</div>
+        <div className="text-lg">Checking authentication...</div>
       </div>
     );
   }
 
-  // Don't render anything if no user (will redirect)
   if (!user) {
-    return null;
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-lg">Redirecting to login...</div>
+      </div>
+    );
   }
 
   return <>{children}</>;
