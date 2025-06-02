@@ -95,7 +95,6 @@ export default function SignupPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-900 bg-white placeholder-gray-500"
               placeholder="Enter your email"
               required
@@ -111,7 +110,6 @@ export default function SignupPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-900 bg-white placeholder-gray-500"
               placeholder="Enter your password (min 6 characters)"
               required
@@ -127,7 +125,6 @@ export default function SignupPage() {
               type="password"
               value={confirmPassword}
               onChange={(e) => setConfirmPassword(e.target.value)}
-
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all duration-200 text-gray-900 bg-white placeholder-gray-500"
               placeholder="Confirm your password"
               required
@@ -137,7 +134,6 @@ export default function SignupPage() {
 
           <button
             type="submit"
-
             disabled={loading || !auth}
             className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-all duration-200 transform hover:scale-[1.02] active:scale-[0.98] font-medium"
           >
@@ -151,7 +147,6 @@ export default function SignupPage() {
             )}
           </button>
         </form>
-
 
         <p className="text-center mt-6 text-gray-600">
           Already have an account?{' '}
