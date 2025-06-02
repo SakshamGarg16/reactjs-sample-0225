@@ -1,13 +1,14 @@
 'use client';
 
 import { useEffect, useState, useCallback } from 'react';
-import { collection, getDocs, query, where, orderBy } from 'firebase/firestore';
+import { collection, getDocs, query, where, serverTimestamp, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../utils/firebase';
 import TaskCard from '../components/TaskCard';
 import AddTaskModal from '../components/AddTaskModal';
 import { Toaster } from 'react-hot-toast';
 import { onAuthStateChanged } from 'firebase/auth';
 import ProtectedRoute from '../components/ProctedRoute';
+
 
 export interface Task {
   id: string;
@@ -16,10 +17,9 @@ export interface Task {
   status: 'pending' | 'in-progress' | 'completed';
   deadline: string;
   userId: string;
-  createdAt?: any; // Firebase Timestamp or string
-  updatedAt?: any; // Firebase Timestamp or string
+  createdAt: ReturnType<typeof serverTimestamp>;
+  updatedAt: ReturnType<typeof serverTimestamp>;
 }
-
 
 export default function HomePage() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -124,7 +124,7 @@ export default function HomePage() {
                 description={task.description}
                 status={task.status}
                 deadline={task.deadline}
-                createdAt={task.createdAt}
+                createdAt={task.createdAt instanceof Timestamp ? task.createdAt : null}
                 onTaskUpdated={handleTaskUpdate}
               />
             ))}
