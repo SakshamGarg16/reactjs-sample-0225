@@ -1,26 +1,52 @@
 'use client';
 
-import { useState } from 'react';
-import { signInWithEmailAndPassword } from 'firebase/auth';
-import { auth } from '../../utils/firebase';
+import { useState, useEffect } from 'react';
+import { signInWithEmailAndPassword, AuthError } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import toast from 'react-hot-toast';
+import Link from 'next/link';
+import { auth } from '../../utils/firebase';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
   const router = useRouter();
 
-  const handleLogin = async () => {
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!mounted || !auth) {
+      setError('Authentication service not available');
+      return;
+    }
+
+    setLoading(true);
+    setError('');
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
-      toast.success('Login successful!');
       router.push('/');
     } catch (error) {
-      console.error(error);
-      toast.error('Invalid credentials');
+      const authError = error as AuthError;
+      setError(authError.message);
+    } finally {
+      setLoading(false);
     }
   };
+
+  if (!mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-lg">Loading...</div>
+      </div>
+    );
+  }
 
   return (
     <div className="p-6 max-w-md mx-auto">
