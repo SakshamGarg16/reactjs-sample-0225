@@ -8,7 +8,6 @@ import AddTaskModal from '../components/AddTaskModal';
 import { Toaster } from 'react-hot-toast';
 import { onAuthStateChanged } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
-import { signOut } from 'firebase/auth';
 
 interface Task {
   id: string;
