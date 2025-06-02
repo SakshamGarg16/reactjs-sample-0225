@@ -1,261 +1,281 @@
 'use client';
 
-import { useState } from 'react';
-import { doc, updateDoc, deleteDoc, serverTimestamp, Timestamp } from 'firebase/firestore';
+import { useState, useCallback } from 'react';
+import { doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import toast from 'react-hot-toast';
 
 interface TaskCardProps {
   id: string;
   title: string;
-  description: string;
-  status: 'pending' | 'in-progress' | 'completed';
-  deadline: string;
-  createdAt?: Timestamp | string | null;
-  onTaskUpdated?: () => void;
+  status: string;
+  deadline?: Timestamp | Date | null;
+  description?: string;
 }
 
-export default function TaskCard({ 
-  id, 
-  title, 
-  description, 
-  status, 
-  deadline, 
-  createdAt,
-  onTaskUpdated 
-}: TaskCardProps) {
-  const [loading, setLoading] = useState(false);
+interface FormattedDeadline {
+  full: string;
+  date: string;
+  time: string;
+}
 
-  // Validate required props
-  if (!id || !title) {
-    console.error('TaskCard: Missing required props', { id, title });
-    return null;
-  }
+export default function TaskCard({ id, title, status, deadline, description }: TaskCardProps) {
+  const [currentStatus, setCurrentStatus] = useState(status);
+  const [isUpdating, setIsUpdating] = useState(false);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-800 border-green-200';
-      case 'in-progress':
-        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
-      case 'pending':
-        return 'bg-red-100 text-red-800 border-red-200';
-      default:
-        return 'bg-gray-100 text-gray-800 border-gray-200';
-    }
-  };
-
-  const getStatusText = (status: string) => {
-    switch (status) {
-      case 'completed':
-        return 'Completed';
-      case 'in-progress':
-        return 'In Progress';
-      case 'pending':
-        return 'Pending';
-      default:
-        return 'Unknown';
-    }
-  };
-
-  const formatDate = (dateInput: Timestamp | string | null | undefined) => {
-    try {
-      if (!dateInput) return 'No date';
-      
-      // Handle Firebase Timestamp
-      if (dateInput && typeof dateInput === 'object' && 'toDate' in dateInput) {
-        const date = (dateInput as Timestamp).toDate();
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-      }
-      
-      // Handle string dates
-      if (typeof dateInput === 'string') {
-        const date = new Date(dateInput);
-        if (isNaN(date.getTime())) return 'Invalid date';
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
-          hour: '2-digit', 
-          minute: '2-digit' 
-        });
-      }
-      
-      return 'Invalid date';
-    } catch (error) {
-      console.error('Error formatting date:', error);
-      return 'Invalid date';
-    }
-  };
-
-  const isOverdue = () => {
-    try {
-      if (!deadline) return false;
-      const now = new Date();
-      const deadlineDate = new Date(deadline);
-      return !isNaN(deadlineDate.getTime()) && deadlineDate < now && status !== 'completed';
-    } catch {
-      return false;
-    }
-  };
-
-  const updateStatus = async (newStatus: 'pending' | 'in-progress' | 'completed') => {
-    if (!id) {
-      toast.error('Invalid task ID');
+  const updateTaskStatus = useCallback(async (newStatus: string) => {
+    if (!db) {
+      toast.error('Database not available');
       return;
     }
 
-    setLoading(true);
-    try {
-      await updateDoc(doc(db, 'tasks', id), {
-        status: newStatus,
-        updatedAt: serverTimestamp(),
-      });
+    if (newStatus === currentStatus) {
+      return; // No change needed
+    }
 
-      toast.success(`Task status updated to ${getStatusText(newStatus)}`);
+    if (isUpdating) {
+      return; // Prevent multiple simultaneous updates
+    }
+
+    setIsUpdating(true);
+    
+    // Create a unique toast ID to prevent duplicates
+    const toastId = `update-${id}-${Date.now()}`;
+    
+    try {
+      const taskRef = doc(db, 'tasks', id);
+      await updateDoc(taskRef, { 
+        status: newStatus,
+        updatedAt: new Date()
+      });
       
-      if (onTaskUpdated) {
-        onTaskUpdated();
-      }
+      setCurrentStatus(newStatus);
+      toast.success('Task status updated!', { id: toastId });
+      
     } catch (error) {
       console.error('Error updating task:', error);
-      toast.error('Failed to update task');
+      toast.error('Failed to update task status', { id: toastId });
     } finally {
-      setLoading(false);
+      setIsUpdating(false);
     }
-  };
+  }, [id, currentStatus, isUpdating]);
 
-  const toggleStatus = async () => {
-    const newStatus = status === 'completed' ? 'pending' : 'completed';
-    await updateStatus(newStatus);
-  };
-
-  const deleteTask = async () => {
-    if (!id) {
-      toast.error('Invalid task ID');
+  const deleteTask = useCallback(async () => {
+    if (!db) {
+      toast.error('Database not available');
       return;
+    }
+
+    if (isUpdating) {
+      return; // Prevent multiple simultaneous operations
     }
 
     if (!confirm('Are you sure you want to delete this task?')) {
       return;
     }
 
-    setLoading(true);
+    setIsUpdating(true);
+    
+    // Create a unique toast ID
+    const toastId = `delete-${id}-${Date.now()}`;
+    
     try {
-      await deleteDoc(doc(db, 'tasks', id));
-      toast.success('Task deleted successfully');
+      const taskRef = doc(db, 'tasks', id);
+      await deleteDoc(taskRef);
       
-      if (onTaskUpdated) {
-        onTaskUpdated();
-      }
+      toast.success('Task deleted successfully!', { id: toastId });
+      
+      // Refresh the page to update the task list
+      setTimeout(() => {
+        window.location.reload();
+      }, 1000);
+      
     } catch (error) {
       console.error('Error deleting task:', error);
-      toast.error('Failed to delete task');
-    } finally {
-      setLoading(false);
+      toast.error('Failed to delete task', { id: toastId });
+      setIsUpdating(false);
+    }
+  }, [id, isUpdating]);
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'bg-red-100 text-red-800 border-red-200';
+      case 'in-progress':
+        return 'bg-yellow-100 text-yellow-800 border-yellow-200';
+      case 'completed':
+        return 'bg-green-100 text-green-800 border-green-200';
+      default:
+        return 'bg-gray-100 text-gray-800 border-gray-200';
     }
   };
 
-  return (
-    <div className={`bg-white p-4 rounded-lg shadow-md border-l-4 mb-4 ${
-      status === 'completed' ? 'border-green-500' : 
-      status === 'in-progress' ? 'border-yellow-500' : 
-      'border-red-500'
-    } ${isOverdue() ? 'bg-red-50' : ''}`}>
+  const getStatusLabel = (status: string) => {
+    switch (status) {
+      case 'pending':
+        return 'Pending';
+      case 'in-progress':
+        return 'In Progress';
+      case 'completed':
+        return 'Completed';
+      default:
+        return status;
+    }
+  };
+
+  const formatDeadline = (deadline: Timestamp | Date | null | undefined): FormattedDeadline | null => {
+    if (!deadline) return null;
+    
+    try {
+      let date: Date;
+      if (deadline instanceof Timestamp) {
+        date = deadline.toDate();
+      } else if (deadline instanceof Date) {
+        date = deadline;
+      } else {
+        return null;
+      }
       
-      {/* Header */}
-      <div className="flex justify-between items-start mb-3 text-gray-700">
-        <h3 className={`text-lg font-semibold ${status === 'completed' ? 'line-through text-gray-700' : ''}`}>
-          {title || 'Untitled Task'}
-        </h3>
-        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
-          {getStatusText(status)}
+      return {
+        full: date.toLocaleString(),
+        date: date.toLocaleDateString(),
+        time: date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+    } catch (error) {
+      console.error('Error formatting deadline:', error);
+      return null;
+    }
+  };
+
+  const isOverdue = (deadline: Timestamp | Date | null | undefined): boolean => {
+    if (!deadline || currentStatus === 'completed') return false;
+    
+    try {
+      let date: Date;
+      if (deadline instanceof Timestamp) {
+        date = deadline.toDate();
+      } else if (deadline instanceof Date) {
+        date = deadline;
+      } else {
+        return false;
+      }
+      
+      return date < new Date();
+    } catch (error) {
+      console.error('Error checking deadline:', error);
+      return false;
+    }
+  };
+
+  const getTimeRemaining = (deadline: Timestamp | Date | null | undefined): string | null => {
+    if (!deadline || currentStatus === 'completed') return null;
+    
+    try {
+      let date: Date;
+      if (deadline instanceof Timestamp) {
+        date = deadline.toDate();
+      } else if (deadline instanceof Date) {
+        date = deadline;
+      } else {
+        return null;
+      }
+      
+      const now = new Date();
+      const diff = date.getTime() - now.getTime();
+      
+      if (diff < 0) return 'Overdue';
+      
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      if (days > 0) return `${days}d ${hours}h remaining`;
+      if (hours > 0) return `${hours}h ${minutes}m remaining`;
+      if (minutes > 0) return `${minutes}m remaining`;
+      return 'Due now';
+    } catch (error) {
+      console.error('Error calculating time remaining:', error);
+      return null;
+    }
+  };
+
+  const formattedDeadline = formatDeadline(deadline);
+  const overdue = isOverdue(deadline);
+  const timeRemaining = getTimeRemaining(deadline);
+
+  return (
+    <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
+      <div className="flex justify-between items-start mb-4">
+        <h3 className="text-lg font-semibold text-gray-900 flex-1 mr-2">{title}</h3>
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(currentStatus)}`}>
+          {getStatusLabel(currentStatus)}
         </span>
       </div>
 
-      {/* Description */}
       {description && (
-        <p className={`text-gray-600 mb-3 ${status === 'completed' ? 'line-through' : ''}`}>
-          {description}
-        </p>
+        <p className="text-gray-600 text-sm mb-3 line-clamp-2">{description}</p>
       )}
 
-      {/* Deadline */}
-      {deadline && (
-        <div className="mb-3">
-          <p className={`text-sm ${isOverdue() ? 'text-red-600 font-semibold' : 'text-gray-500'}`}>
-            <span className="font-medium">Deadline:</span> {formatDate(deadline)}
-            {isOverdue() && <span className="ml-2 text-red-600">(Overdue!)</span>}
-          </p>
+      {formattedDeadline && (
+        <div className={`mb-4 p-3 rounded-md text-sm ${
+          overdue 
+            ? 'bg-red-50 text-red-700 border border-red-200' 
+            : 'bg-blue-50 text-blue-700 border border-blue-200'
+        }`}>
+          <div className="flex items-center mb-1">
+            <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="font-medium">
+              {overdue ? 'Overdue' : 'Deadline'}
+            </span>
+          </div>
+          <div className="ml-6">
+            <p className="font-medium">{formattedDeadline.date}</p>
+            <p className="text-xs opacity-75">{formattedDeadline.time}</p>
+            {timeRemaining && (
+              <p className={`text-xs mt-1 font-medium ${
+                overdue ? 'text-red-600' : 'text-blue-600'
+              }`}>
+                {timeRemaining}
+              </p>
+            )}
+          </div>
         </div>
       )}
 
-      {/* Status Update Buttons */}
-      <div className="flex flex-wrap gap-2 mb-3">
-        <button
-          onClick={() => updateStatus('pending')}
-          disabled={loading || status === 'pending'}
-          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-            status === 'pending' 
-              ? 'bg-red-200 text-red-800 cursor-not-allowed' 
-              : 'bg-red-100 text-red-700 hover:bg-red-200'
-          }`}
-        >
-          Pending
-        </button>
-        <button
-          onClick={() => updateStatus('in-progress')}
-          disabled={loading || status === 'in-progress'}
-          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-            status === 'in-progress' 
-              ? 'bg-yellow-200 text-yellow-800 cursor-not-allowed' 
-              : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200'
-          }`}
-        >
-          In Progress
-        </button>
-        <button
-          onClick={() => updateStatus('completed')}
-          disabled={loading || status === 'completed'}
-          className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-            status === 'completed' 
-              ? 'bg-green-200 text-green-800 cursor-not-allowed' 
-              : 'bg-green-100 text-green-700 hover:bg-green-200'
-          }`}
-        >
-          Completed
-        </button>
-      </div>
+      <div className="space-y-3">
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Update Status:
+          </label>
+          <select
+            value={currentStatus}
+            onChange={(e) => updateTaskStatus(e.target.value)}
+            disabled={isUpdating}
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+          >
+            <option value="pending">Pending</option>
+            <option value="in-progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
 
-      {/* Action Buttons */}
-      <div className="flex gap-2">
-        <button
-          onClick={toggleStatus}
-          disabled={loading}
-          className={`flex-1 py-2 px-3 rounded text-sm font-medium transition-colors ${
-            status === 'completed'
-              ? 'bg-yellow-500 text-white hover:bg-yellow-600'
-              : 'bg-green-500 text-white hover:bg-green-600'
-          } disabled:opacity-50`}
-        >
-          {loading ? 'Updating...' : status === 'completed' ? 'Mark Incomplete' : 'Mark Complete'}
-        </button>
-        
         <button
           onClick={deleteTask}
-          disabled={loading}
-          className="bg-red-500 text-white py-2 px-3 rounded text-sm font-medium hover:bg-red-600 disabled:opacity-50 transition-colors"
+          disabled={isUpdating}
+          className="w-full bg-red-600 text-white py-2 px-4 rounded-md hover:bg-red-700 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer transition-colors duration-200 text-sm font-medium"
         >
-          {loading ? 'Deleting...' : 'Delete'}
+          {isUpdating ? (
+            <div className="flex items-center justify-center">
+              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+              Processing...
+            </div>
+          ) : (
+            'Delete Task'
+          )}
         </button>
       </div>
-
-      {/* Created Date */}
-      {createdAt && (
-        <p className="text-xs text-gray-400 mt-2">
-          Created: {formatDate(createdAt)}
-        </p>
-      )}
     </div>
   );
 }
