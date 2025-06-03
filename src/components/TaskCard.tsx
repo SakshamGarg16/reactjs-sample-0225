@@ -323,7 +323,7 @@ export default function TaskCard({ id, title, status, deadline, description, cre
               <h3 className="text-lg font-semibold text-gray-900 dark:text-white">Delete Task</h3>
             </div>
             <p className="text-gray-600 dark:text-gray-300 mb-6">
-              Are you sure you want to delete "{title}"? This action cannot be undone.
+              Are you sure you want to delete &quot;{title}&quot;? This action cannot be undone.
             </p>
             <div className="flex justify-end space-x-3">
               <button
@@ -345,6 +345,7 @@ export default function TaskCard({ id, title, status, deadline, description, cre
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
                     Deleting...
+
                   </>
                 ) : (
                   'Delete'
