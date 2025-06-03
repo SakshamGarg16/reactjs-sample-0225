@@ -30,6 +30,7 @@ export default function Navbar() {
     toast.success("Logged out successfully");
   } catch (err) {
     toast.error("Logout failed");
+    console.error("Logout error:", err);
   }
 };
 
