@@ -4,13 +4,12 @@ import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { signOut, onAuthStateChanged, User } from 'firebase/auth';
 import { auth } from '../utils/firebase';
-import { useRouter } from 'next/navigation';
 import toast from 'react-hot-toast';
+import WalletConnect from './Web3Wallet';
 
 export default function Navbar() {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
 
   useEffect(() => {
     if (typeof window !== 'undefined' && auth) {
@@ -26,22 +25,15 @@ export default function Navbar() {
   }, []);
 
   const handleLogout = async () => {
-    if (!auth) {
-      toast.error('Authentication service not available');
-      return;
-    }
+  try {
+    await signOut(auth);
+    toast.success("Logged out successfully");
+  } catch (err) {
+    toast.error("Logout failed");
+    console.error("Logout error:", err);
+  }
+};
 
-    try {
-      await signOut(auth);
-      toast.success('Logged out successfully');
-      router.push('/login');
-    } catch (error) {
-      console.error('Logout error:', error);
-      toast.error('Failed to logout');
-    }
-  };
-
-  // Don't render anything while loading
   if (loading) {
     return (
       <nav className="bg-black shadow p-4 mb-6 flex justify-between items-center">
@@ -85,6 +77,7 @@ export default function Navbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        <WalletConnect />
         {user ? (
           <>
             <span className="text-white text-sm bg-gray-800 px-3 py-1 rounded-full">
