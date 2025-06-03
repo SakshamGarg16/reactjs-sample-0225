@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { collection, getDocs, query, where, Timestamp } from 'firebase/firestore';
 import { db, auth } from '../utils/firebase';
 import TaskCard from '../components/TaskCard';
@@ -28,18 +28,30 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
   const router = useRouter();
 
-  const fetchTasks = async (uid: string) => {
-    const q = query(collection(db, 'tasks'), where('userId', '==', uid));
-    const snapshot = await getDocs(q);
-    const fetchedTasks = snapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data()
-    })) as Task[];
-    setTasks(fetchedTasks);
-    setLoading(false);
-  };
+  const fetchTasks = useCallback(async (uid: string) => {
+    try {
+      const q = query(collection(db, 'tasks'), where('userId', '==', uid));
+      const snapshot = await getDocs(q);
+      const fetchedTasks = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      })) as Task[];
+      setTasks(fetchedTasks);
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching tasks:', error);
+      setLoading(false);
+    }
+  }, []);
+
+  const refreshTasks = useCallback(() => {
+    if (currentUser) {
+      fetchTasks(currentUser.uid);
+    }
+  }, [currentUser, fetchTasks]);
 
   // Filter tasks based on selected status
   useEffect(() => {
@@ -54,14 +66,16 @@ export default function HomePage() {
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (user) => {
       if (user) {
+        setCurrentUser(user);
         fetchTasks(user.uid);
       } else {
+        setCurrentUser(null);
         router.push('/login');
       }
     });
 
     return () => unsubscribe();
-  }, [router]);
+  }, [router, fetchTasks]);
 
   const handleFilterChange = (filter: FilterStatus) => {
     setSelectedFilter(filter);
@@ -250,7 +264,7 @@ export default function HomePage() {
                 )}
               </div>
               
-              <AddTaskModal />
+              <AddTaskModal onTaskAdded={refreshTasks} />
             </div>
           </div>
 
@@ -319,6 +333,7 @@ export default function HomePage() {
                   status={task.status}
                   description={task.description}
                   deadline={task.deadline}
+                  onTaskUpdated={refreshTasks}
                 />
               ))}
             </div>
