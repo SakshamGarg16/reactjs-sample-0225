@@ -6,7 +6,11 @@ import { onAuthStateChanged, User } from 'firebase/auth';
 import { db, auth } from '../utils/firebase';
 import toast from 'react-hot-toast';
 
-export default function AddTaskModal() {
+interface AddTaskModalProps {
+  onTaskAdded?: () => void;
+}
+
+export default function AddTaskModal({ onTaskAdded }: AddTaskModalProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -71,16 +75,20 @@ export default function AddTaskModal() {
 
       toast.success('Task created successfully!');
       
-      // Reset form
+      // Call the refresh callback
+      if (onTaskAdded) {
+        onTaskAdded();
+      }
+      
+      // Reset form and close modal
+      setIsOpen(false);
+      
+      // Reset form fields
       setTitle('');
       setDescription('');
       setStatus('pending');
       setDeadlineDate('');
       setDeadlineTime('');
-      setIsOpen(false);
-      
-      // Refresh the page to show the new task
-      window.location.reload();
     } catch (error) {
       console.error('Error creating task:', error);
       toast.error('Failed to create task');

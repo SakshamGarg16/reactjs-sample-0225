@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState } from 'react';
 import { doc, updateDoc, deleteDoc, Timestamp } from 'firebase/firestore';
 import { db } from '../utils/firebase';
 import toast from 'react-hot-toast';
@@ -11,6 +11,7 @@ interface TaskCardProps {
   status: string;
   deadline?: Timestamp | Date | null;
   description?: string;
+  onTaskUpdated?: () => void; // Add this callback prop
 }
 
 interface FormattedDeadline {
@@ -19,83 +20,61 @@ interface FormattedDeadline {
   time: string;
 }
 
-export default function TaskCard({ id, title, status, deadline, description }: TaskCardProps) {
-  const [currentStatus, setCurrentStatus] = useState(status);
+export default function TaskCard({ 
+  id, 
+  title, 
+  status, 
+  deadline, 
+  description,
+  onTaskUpdated 
+}: TaskCardProps) {
   const [isUpdating, setIsUpdating] = useState(false);
 
-  const updateTaskStatus = useCallback(async (newStatus: string) => {
-    if (!db) {
-      toast.error('Database not available');
-      return;
-    }
-
-    if (newStatus === currentStatus) {
-      return; // No change needed
-    }
-
-    if (isUpdating) {
-      return; // Prevent multiple simultaneous updates
-    }
-
+  const updateTaskStatus = async (newStatus: string) => {
+    if (isUpdating) return;
+    
     setIsUpdating(true);
-    
-    // Create a unique toast ID to prevent duplicates
-    const toastId = `update-${id}-${Date.now()}`;
-    
     try {
-      const taskRef = doc(db, 'tasks', id);
-      await updateDoc(taskRef, { 
+      await updateDoc(doc(db, 'tasks', id), {
         status: newStatus,
         updatedAt: new Date()
       });
       
-      setCurrentStatus(newStatus);
-      toast.success('Task status updated!', { id: toastId });
+      toast.success('Task status updated successfully!');
       
+      // Call the refresh callback
+      if (onTaskUpdated) {
+        onTaskUpdated();
+      }
     } catch (error) {
       console.error('Error updating task:', error);
-      toast.error('Failed to update task status', { id: toastId });
+      toast.error('Failed to update task status');
     } finally {
       setIsUpdating(false);
     }
-  }, [id, currentStatus, isUpdating]);
+  };
 
-  const deleteTask = useCallback(async () => {
-    if (!db) {
-      toast.error('Database not available');
-      return;
-    }
-
-    if (isUpdating) {
-      return; // Prevent multiple simultaneous operations
-    }
-
-    if (!confirm('Are you sure you want to delete this task?')) {
-      return;
-    }
-
+  const deleteTask = async () => {
+    if (isUpdating) return;
+    
+    if (!confirm('Are you sure you want to delete this task?')) return;
+    
     setIsUpdating(true);
-    
-    // Create a unique toast ID
-    const toastId = `delete-${id}-${Date.now()}`;
-    
     try {
-      const taskRef = doc(db, 'tasks', id);
-      await deleteDoc(taskRef);
+      await deleteDoc(doc(db, 'tasks', id));
+      toast.success('Task deleted successfully!');
       
-      toast.success('Task deleted successfully!', { id: toastId });
-      
-      // Refresh the page to update the task list
-      setTimeout(() => {
-        window.location.reload();
-      }, 1000);
-      
+      // Call the refresh callback
+      if (onTaskUpdated) {
+        onTaskUpdated();
+      }
     } catch (error) {
       console.error('Error deleting task:', error);
-      toast.error('Failed to delete task', { id: toastId });
+      toast.error('Failed to delete task');
+    } finally {
       setIsUpdating(false);
     }
-  }, [id, isUpdating]);
+  };
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -148,7 +127,7 @@ export default function TaskCard({ id, title, status, deadline, description }: T
   };
 
   const isOverdue = (deadline: Timestamp | Date | null | undefined): boolean => {
-    if (!deadline || currentStatus === 'completed') return false;
+    if (!deadline || status === 'completed') return false;
     
     try {
       let date: Date;
@@ -168,7 +147,7 @@ export default function TaskCard({ id, title, status, deadline, description }: T
   };
 
   const getTimeRemaining = (deadline: Timestamp | Date | null | undefined): string | null => {
-    if (!deadline || currentStatus === 'completed') return null;
+    if (!deadline || status === 'completed') return null;
     
     try {
       let date: Date;
@@ -207,8 +186,8 @@ export default function TaskCard({ id, title, status, deadline, description }: T
     <div className="bg-white p-6 rounded-lg shadow-md border border-gray-200 hover:shadow-lg transition-shadow duration-200">
       <div className="flex justify-between items-start mb-4">
         <h3 className="text-lg font-semibold text-gray-900 flex-1 mr-2">{title}</h3>
-        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(currentStatus)}`}>
-          {getStatusLabel(currentStatus)}
+        <span className={`px-3 py-1 rounded-full text-xs font-medium border ${getStatusColor(status)}`}>
+          {getStatusLabel(status)}
         </span>
       </div>
 
@@ -250,7 +229,7 @@ export default function TaskCard({ id, title, status, deadline, description }: T
             Update Status:
           </label>
           <select
-            value={currentStatus}
+            value={status}
             onChange={(e) => updateTaskStatus(e.target.value)}
             disabled={isUpdating}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 bg-white cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
