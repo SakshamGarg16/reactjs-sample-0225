@@ -6,7 +6,7 @@ import { db, auth } from '../utils/firebase';
 import TaskCard from '../components/TaskCard';
 import AddTaskModal from '../components/AddTaskModal';
 import { Toaster } from 'react-hot-toast';
-import { onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged, User } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 
 interface Task {
@@ -28,7 +28,7 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('all');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
-  const [currentUser, setCurrentUser] = useState<any>(null);
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
   const router = useRouter();
 
   const fetchTasks = useCallback(async (uid: string) => {
@@ -311,7 +311,7 @@ export default function HomePage() {
               <p className="text-gray-400 mb-4">
                 {selectedFilter === 'all' 
                   ? 'Create your first task to get started'
-                  : `You don't have any ${getStatusLabel(selectedFilter).toLowerCase()} tasks at the moment`
+                  : `You donnot have any ${getStatusLabel(selectedFilter).toLowerCase()} tasks at the moment`
                 }
               </p>
               {selectedFilter !== 'all' && (
